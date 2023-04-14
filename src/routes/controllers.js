@@ -22,8 +22,9 @@ async function pokemon () {
             types:i.types.map(i=>i.type.name)
         }
     })
-
-    return InfoPokemones
+    const pokemonDB= await pokemonsDb()
+    const Allpokemons = [].concat(pokemonDB, InfoPokemones)
+    return Allpokemons
     }
 
 const Peticiones= async(allpokemones)=>{//recibe un array de objetos con pokemones con name y url [{name:nombre,url:url},{name:nombre,url:url} etc...]
@@ -34,8 +35,12 @@ const Peticiones= async(allpokemones)=>{//recibe un array de objetos con pokemon
      return peticionresuelta  ///retornamos la peticion  resuelta, con toda la info de pokemones listas para mapear
 }
 const idPokemon= async(id)=>{
-    const pokemon=await axios.get(`https://pokeapi.co/api/v2/pokemon/${id}`)
-    const infoApi={
+    if(id.length > 3){
+        const pokemonDb= await Pokemon.findByPk(id)
+        return pokemonDb
+    }else{
+        const pokemon=await axios.get(`https://pokeapi.co/api/v2/pokemon/${id}`)
+        const infoApi={
         id:pokemon.data.id,
         name:pokemon.data.forms[0].name,
         image:pokemon.data.sprites.other.home.front_default,
@@ -48,6 +53,7 @@ const idPokemon= async(id)=>{
         types:pokemon.data.types.map(i=>i.type.name)
     }
     return infoApi
+    }
 }
 
 const pokemonByName= async(name)=>{
@@ -70,19 +76,29 @@ const pokemonByName= async(name)=>{
 const getTypes = async()=>{
     const types = await axios.get("https://pokeapi.co/api/v2/type")
     const typesName = types.data.results.map(i=>i.name)
-    return typesName;
+    const typesDb = await TypesDb(typesName)
+    return typesDb;
 }
 //--------------------------------------------------------------------
 const pokemonsDb = async()=> {
-    const pokemones= await Pokemon.findAll()
+    const pokemones= await Pokemon.findAll({include:Type})
     return pokemones
 }
 
+const TypesDb = async(types)=>{
+    types.forEach(element => {
+        Type.create({
+            name:element
+        })
+    });
+    const tipos = await Type.findAll({include: Pokemon})
+    return tipos
+}
+
 const createPokemon = async(id, name, image, hp, attack, defense, speed, height, weight, types) =>{
-    if(id && name && image && hp && attack && defense){
-        const newPokemon = await Pokemon.Create(
+    if(name && image && hp && attack && defense && types){
+        const newPokemon = await Pokemon.create(
             {
-                id, 
                 name, 
                 image, 
                 hp, 
@@ -94,6 +110,10 @@ const createPokemon = async(id, name, image, hp, attack, defense, speed, height,
                 types
             }
         )
+        const typesdb = await Type.findAll({
+            where: types
+        })
+        return typesdb
     }
 }
 
@@ -102,5 +122,6 @@ module.exports = {
     idPokemon,
     pokemonByName,
     getTypes,
-    createPokemon
+    createPokemon,
+    pokemonsDb,
 }
