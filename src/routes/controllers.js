@@ -74,10 +74,14 @@ const pokemonByName= async(name)=>{
 }
 
 const getTypes = async()=>{
+    const existTypes= await Type.findAll()
+    if(!existTypes.length){
     const types = await axios.get("https://pokeapi.co/api/v2/type")
     const typesName = types.data.results.map(i=>i.name)
     const typesDb = await TypesDb(typesName)
-    return typesDb;
+    return typesDb;}else{
+        return existTypes;
+    }
 }
 //--------------------------------------------------------------------
 const pokemonsDb = async()=> {
@@ -111,10 +115,10 @@ const createPokemon = async(id, name, image, hp, attack, defense, speed, height,
             }
         )
         const typesdb = await Type.findAll({
-            where: types
+            where:{name: types}
         })
-        return typesdb
-    }
+        return newPokemon.addType(typesdb)
+}
 }
 
 module.exports = {
